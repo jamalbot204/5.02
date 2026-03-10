@@ -45,9 +45,7 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({ message, canRegenera
       text: state.streamingText
   })));
 
-  const { messageGenerationTimes } = useDataStore(useShallow(state => ({
-      messageGenerationTimes: state.messageGenerationTimes
-  })));
+  const generationTime = useDataStore(state => state.messageGenerationTimes[message.id]);
   const { isInteractiveChoicesEnabled, ttsSettings } = useActiveChatStore(useShallow(state => ({
       isInteractiveChoicesEnabled: state.currentChatSession?.settings.enableInteractiveChoices ?? false,
       ttsSettings: state.currentChatSession?.settings?.ttsSettings
@@ -57,15 +55,11 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({ message, canRegenera
   
   const { requestResetAudioCacheConfirmation, requestDeleteConfirmation } = useConfirmationUI();
   
-  const audioState = useAudioStore(useShallow(state => ({
-      currentMessageId: state.audioPlayerState.currentMessageId,
-      isPlaying: state.audioPlayerState.isPlaying,
-      isLoading: state.audioPlayerState.isLoading,
-      globalError: state.audioPlayerState.error,
-      fetchingSegmentIds: state.fetchingSegmentIds,
-      segmentFetchErrors: state.segmentFetchErrors,
-      activeMultiPartFetches: state.activeMultiPartFetches,
-  })));
+  const isMainButtonMultiFetching = useAudioStore(state => state.activeMultiPartFetches.has(message.id));
+  const isFetchingThisSegment = useAudioStore(state => textSegmentsForTts.length <= 1 && state.fetchingSegmentIds.has(message.id));
+  const isPlayingThisMessage = useAudioStore(state => state.audioPlayerState.currentMessageId?.startsWith(message.id) && (state.audioPlayerState.isLoading || state.audioPlayerState.isPlaying));
+  const segmentFetchError = useAudioStore(state => state.segmentFetchErrors.get(message.id));
+  const currentPlayerError = useAudioStore(state => state.audioPlayerState.currentMessageId?.startsWith(message.id) ? state.audioPlayerState.error : null);
 
   const { isSelectionModeActive, toggleMessageSelection, selectRange } = useSelectionStore(useShallow(state => ({
       isSelectionModeActive: state.isSelectionModeActive,
@@ -207,7 +201,6 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({ message, canRegenera
   }
 
   const layoutClasses = isUser ? 'justify-end' : 'justify-start';
-  const generationTime = messageGenerationTimes[message.id];
   const groundingChunks = message.groundingMetadata?.groundingChunks;
   
   let bubbleClasses = '';
@@ -219,10 +212,6 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({ message, canRegenera
       bubbleClasses = 'bg-[var(--aurora-msg-ai-bg)] border border-[var(--aurora-border)] text-[var(--aurora-text-on-surface)] rounded-2xl rounded-bl-sm shadow-sm';
   }
 
-  const isMainButtonMultiFetching = audioState.activeMultiPartFetches.has(message.id);
-  const isFetchingThisSegment = (textSegmentsForTts.length <= 1 && audioState.fetchingSegmentIds.has(message.id));
-  const isPlayingThisMessage = audioState.currentMessageId?.startsWith(message.id) && (audioState.isLoading || audioState.isPlaying);
-  
   const isAnyAudioOperationActiveForMessage = message.isStreaming || isMainButtonMultiFetching || isFetchingThisSegment || isPlayingThisMessage;
 
   const handleResetCacheClick = () => { 
@@ -231,8 +220,6 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({ message, canRegenera
       requestResetAudioCacheConfirmation(currentChatSession.id, message.id); 
   };
 
-  const segmentFetchError = audioState.segmentFetchErrors.get(message.id);
-  const currentPlayerError = (audioState.currentMessageId?.startsWith(message.id) ? audioState.globalError : null);
   const overallAudioErrorMessage = segmentFetchError || currentPlayerError;
   const hasErrorOverall = !!overallAudioErrorMessage;
 

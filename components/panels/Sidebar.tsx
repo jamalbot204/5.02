@@ -14,7 +14,7 @@ import { useTranslation } from '../../hooks/useTranslation.ts';
 import { useHistorySelectionStore } from '../../store/useHistorySelectionStore.ts';
 import { useShallow } from 'zustand/react/shallow';
 
-const SidebarChatItem = React.memo(({ session, isActive, isEditing, isSelected, isHistorySelectionModeActive, isCharMode, selectChat, toggleChatSelection, startEditingTitle, duplicateChat, requestDeleteChatConfirmation, saveChatTitle, cancelEditingTitle, setEditingTitleValue, handleInputKeyDown, editInputRef, t }: any) => {
+const SidebarChatItem = React.memo(({ session, editingValue, isActive, isEditing, isSelected, isHistorySelectionModeActive, isCharMode, selectChat, toggleChatSelection, startEditingTitle, duplicateChat, requestDeleteChatConfirmation, saveChatTitle, cancelEditingTitle, setEditingTitleValue, handleInputKeyDown, editInputRef, t }: any) => {
     let borderClass = 'border-transparent';
     let bgClass = 'hover:bg-white/5 hover:border-white/5';
     let textClass = 'text-[var(--aurora-text-secondary)]';
@@ -57,7 +57,7 @@ const SidebarChatItem = React.memo(({ session, isActive, isEditing, isSelected, 
                 <input
                     ref={editInputRef}
                     type="text"
-                    value={session.editingValue}
+                    value={editingValue}
                     onChange={(e) => setEditingTitleValue(e.target.value)}
                     onKeyDown={handleInputKeyDown}
                     onBlur={() => setTimeout(cancelEditingTitle, 100)}
@@ -248,7 +248,8 @@ const Sidebar: React.FC = memo(() => {
         {chatHistory.map(session => (
             <SidebarChatItem
                 key={session.id}
-                session={{...session, editingValue: editingTitleInfo.id === session.id ? editingTitleInfo.value : session.title}}
+                session={session}
+                editingValue={editingTitleInfo.id === session.id ? editingTitleInfo.value : undefined}
                 isActive={currentChatId === session.id}
                 isEditing={editingTitleInfo.id === session.id}
                 isSelected={selectedChatIds.includes(session.id)}
